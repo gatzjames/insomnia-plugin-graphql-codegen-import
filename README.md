@@ -1,4 +1,6 @@
-# Auto-generate GraphQL operations in your Insomnia workspace!
+# insomnia-plugin-graphql-codegen
+
+Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 <img src='./insomnia/cover.svg' />
 
