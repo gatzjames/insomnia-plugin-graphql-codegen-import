@@ -23,10 +23,10 @@
     "@playwright/test": "^1.15.2",
     "esbuild": "^0.13.8",
     "graphql": "^15.6.1",
-    "insomnia-plugin": "file:./insomnia-plugin",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "insomnia-plugin": "file:./insomnia-plugin",
     "@types/uuid": "^8.3.1",
     "playwright": "^1.15.2"
   }
