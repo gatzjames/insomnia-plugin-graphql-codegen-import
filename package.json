@@ -2,6 +2,11 @@
   "name": "insomnia-plugin-graphql-codegen",
   "version": "0.3.2",
   "private": false,
+  "license": "MIT",
+  "homepage": "https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import",
+  "repository": {
+    "url": "https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import"
+  },
   "insomnia": {
     "name": "graphql-codegen-import",
     "description": "",
