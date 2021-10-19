@@ -1,7 +1,7 @@
 {
-  "name": "insomnia-plugin-graphql-codegen-import",
+  "name": "insomnia-plugin-graphql-codegen",
   "version": "0.2.0",
-  "private": true,
+  "private": false,
   "insomnia": {
     "name": "graphql-codegen-import",
     "description": "",
