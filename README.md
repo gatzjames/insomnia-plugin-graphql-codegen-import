@@ -1,12 +1,15 @@
+![](./insomnia/cover.svg)
+![npm (scoped)](https://img.shields.io/npm/v/insomnia-plugin-graphql-codegen?label=NPM) ![NPM](https://img.shields.io/npm/l/insomnia-plugin-graphql-codegen)
+
 # insomnia-plugin-graphql-codegen
 
 Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
-<img src='./insomnia/cover.svg' />
-
 ## Installation
 
-TBD
+![](./docs/installation.gif)
+- Open [Insomnia](https://insomnia.rest/) > Preferences > Plugins
+- Type `insomnia-plugin-graphql-codegen` and install the plugin.
 
 ## How it works
 
@@ -16,14 +19,12 @@ TBD
 
 ### Import from a File
 
-<img src="./graphql-codegen-import-file.gif" />
+![](./docs/graphql-codegen-import-file.gif)
+### Import from a Url
 
-### Import from a File
-<img src="./graphql-codegen-import-url.gif" />
+![](./docs/graphql-codegen-import-url.gif)
 
 TODO:
-- [ ] Publish to npm
-- [ ] Add gifs for how it works
 - [ ] Tests
 - [ ] Re-importing operations will produce duplicates. 
 
