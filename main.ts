@@ -7,11 +7,20 @@ import {
   print,
   GraphQLSchema,
   OperationDefinitionNode,
-  parse,
-  GraphQLNamedType,
-  VariableDefinitionNode,
-  isNamedType,
+  IntrospectionQuery,
+  buildSchema
 } from "graphql";
+
+import https from "https";
+import {
+  Context,
+  Request,
+  RequestGroup,
+  Spec,
+  WorkspaceAction
+} from "insomnia-plugin";
+
+let pluginName = `GraphQL Codegen`;
 
 /**
  * NOTE:
@@ -27,177 +36,56 @@ function insomniaIdGenerator() {
   };
 }
 
-export interface Root {
-  context: Context;
-  spec: Spec;
-}
-
-export interface Context {
-  app: App;
-  __private: Private;
-  data: Data;
-  store: Store;
-  network: Network;
-}
-
-export interface App {
-  clipboard: Clipboard;
-  alert: (title: string, message?: string) => Promise<undefined>;
-  prompt: (
-    title: string,
-    options: {
-      label: string;
-      defaultValue: string;
-      submitName?: string;
-      cancelable: boolean;
-    }
-  ) => Promise<string>;
-}
-
-export interface Clipboard {}
-
-export interface Private {
-  analytics: Analytics;
-}
-
-export interface Analytics {
-  SegmentEvent: SegmentEvent;
-}
-
-export interface SegmentEvent {
-  collectionCreate: string;
-  documentCreate: string;
-  pluginExportLoadAllWokspace: string;
-  pluginExportLoadWorkspacesInProject: string;
-  requestCreate: string;
-  requestExecute: string;
-  projectLocalCreate: string;
-  projectLocalDelete: string;
-  testSuiteCreate: string;
-  testSuiteDelete: string;
-  unitTestCreate: string;
-  unitTestDelete: string;
-  unitTestRun: string;
-  unitTestRunAll: string;
-}
-
-export interface Data {
-  import: Import;
-  export: Export;
-}
-
-export interface Import {
-  raw: (
-    text: string,
-    options: {
-      workspaceId?: string;
-      scope?: Scope;
-    }
-  ) => Promise<void>;
-}
-
-export interface Export {}
-
-export interface Store {}
-
-export interface Network {}
-
-export interface Spec {
-  requestGroups: any[];
-  requests: Request[];
-  workspace: Workspace;
-}
-
-export interface Request {
-  _id: string;
-  type: string;
-  parentId: string;
-  modified: number;
-  created: number;
-  url: string;
-  name: string;
-  description: string;
-  method: string;
-  body: Body;
-  parameters: any[];
-  headers: any[];
-  authentication: Authentication;
-  metaSortKey: number;
-  isPrivate: boolean;
-  settingStoreCookies: boolean;
-  settingSendCookies: boolean;
-  settingDisableRenderRequestBody: boolean;
-  settingEncodeUrl: boolean;
-  settingRebuildPath: boolean;
-  settingFollowRedirects: string;
-}
-
-export interface Body {}
-
-export interface Authentication {}
-
-type Scope = "design" | "document";
-
-type RequestGroup = {
-  _id: string;
-  name: string;
-  parentId: string;
-  description: string;
-  _type: string;
-  environment: Record<string, any>;
-  environmentPropertyOrder: Record<string, any> | null;
-  metaSortKey: number;
-};
-
-type Workspace = {
-  _id: string;
-  name: string;
-  description: string;
-  certificates?: any;
-  scope: Scope;
-};
-
-type WorkspaceAction = {
-  action: (
-    context: Context,
-    models: {
-      workspace: Workspace;
-      requestGroups: RequestGroup[];
-      requests: Request[];
-    }
-  ) => void | Promise<void>;
-  label: string;
-  icon?: string;
-};
-
 function getCurrentWorkspace(spec: Spec) {
   let workspace = spec.workspace;
 
   return workspace;
 }
 
-async function fetchGraphQLSchema(
-  context: Context,
-  url: URL
-): Promise<GraphQLSchema> {
+async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
   let introspectionQuery = getIntrospectionQuery();
-  // @ts-ignore
-  let axios = context.__private.axios;
 
-  const response = await axios({
-    method: "POST",
-    url: url.toString(),
+  return new Promise((resolve, reject) => {
+    let request = https.request(
+      {
+        method: "POST",
+        protocol: "https:",
+        host: url.host,
+        path: url.pathname,
+        pathname: url.pathname,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        agent: new https.Agent({
+          rejectUnauthorized: false
+        })
+      },
+      (response) => {
+        if (
+          response.statusMessage === "OK" ||
+          response.statusCode?.toString().startsWith("2")
+        ) {
+          let data = "";
+          response.on("data", (chunk) => {
+            data += chunk;
+          });
+          response.on("end", () => {
+            let introspectionResult: IntrospectionQuery =
+              JSON.parse(data)?.data;
+            let schema = buildClientSchema(introspectionResult);
+            resolve(schema);
+          });
+        }
 
-    data: JSON.stringify({
-      query: introspectionQuery,
-    }),
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+        response.on("error", reject);
+      }
+    );
+
+    request.on("error", reject);
+    request.write(JSON.stringify({ query: introspectionQuery }));
+    request.end();
   });
-
-  return buildClientSchema(response.data.data);
 }
 
 function mapFieldsToOperations(
@@ -227,23 +115,20 @@ async function generateOperations(schema: GraphQLSchema) {
       schema,
       Object.keys(subscriptions),
       "subscription"
-    ),
+    )
   };
 }
 
-async function promptUserForSchemaUrl(context: Context) {
+async function promptUserForSchemaUrlFromFile(context: Context) {
   let schemaUrl: string;
   let url: URL;
 
   try {
-    schemaUrl = await context.app.prompt(
-      "Please provide the GraphQL url of your schema",
-      {
-        cancelable: true,
-        defaultValue: "https://rickandmortyapi.com/graphql",
-        label: "Import from a GraphQL url",
-      }
-    );
+    schemaUrl = await context.app.prompt(`${pluginName}: Import from File`, {
+      cancelable: true,
+      defaultValue: "http://localhost:4000/graphql",
+      label: "Provide the Url for the generated GraphQL requests"
+    });
   } catch (e) {
     console.log(e);
     return;
@@ -254,8 +139,37 @@ async function promptUserForSchemaUrl(context: Context) {
   } catch (e) {
     if (e instanceof Error) {
       await context.app.alert(
-        "Import from a GraphQL url",
-        "The url you provided is not valid"
+        `${pluginName}: Import from File`,
+        "The Url is not valid"
+      );
+    }
+  }
+
+  return url;
+}
+
+async function promptUserForSchemaUrl(context: Context) {
+  let schemaUrl: string;
+  let url: URL;
+
+  try {
+    schemaUrl = await context.app.prompt(`${pluginName}: Import from Url`, {
+      cancelable: true,
+      defaultValue: "https://rickandmortyapi.com/graphql",
+      label: "Please provide the Url of your GraphQL API"
+    });
+  } catch (e) {
+    console.log(e);
+    return;
+  }
+
+  try {
+    url = new URL(schemaUrl);
+  } catch (e) {
+    if (e instanceof Error) {
+      await context.app.alert(
+        `${pluginName}: Import from Url`,
+        "The Url is not valid"
       );
     }
   }
@@ -277,10 +191,12 @@ function getInsomniaRequestGroupFromOperations(
     parentId: workspaceId,
     name: operationGroupName,
     _type: "request_group",
-    _id: generateInsomniaId(),
+    _id: generateInsomniaId()
   };
 
-  function mapOperationToRequest(operation: OperationDefinitionNode) {
+  function mapOperationToRequest(
+    operation: OperationDefinitionNode
+  ): Partial<Request> {
     return {
       _id: generateInsomniaId(),
       _type: "request",
@@ -288,19 +204,19 @@ function getInsomniaRequestGroupFromOperations(
         mimeType: "application/graphql",
         text: JSON.stringify({
           query: print(operation),
-          variables: JSON.stringify({}),
+          variables: JSON.stringify({})
         }),
         headers: [
           {
             name: "Content-Type",
-            value: "application/json",
-          },
-        ],
+            value: "application/json"
+          }
+        ]
       },
       name: operation.name?.value,
       method: "POST",
       url,
-      parentId: requestGroup._id,
+      parentId: requestGroup._id
     };
   }
 
@@ -309,59 +225,136 @@ function getInsomniaRequestGroupFromOperations(
   return [requestGroup, ...requests];
 }
 
-export let workspaceActions: WorkspaceAction[] = [
-  {
-    label: "GraphQL: Generate operations",
-    icon: "graph",
-    async action(context, spec) {
+/**
+ * Transforms the operations to requests and imports them to the current workspace.
+ */
+async function importToCurrentWorkspace(
+  spec: Spec,
+  operations: {
+    mutations: OperationDefinitionNode[];
+    queries: OperationDefinitionNode[];
+    subscriptions: OperationDefinitionNode[];
+  },
+  schemaUrl: URL,
+  context: Context
+) {
+  let workspace = getCurrentWorkspace(spec);
+
+  let subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(
+    operations.subscriptions,
+    workspace._id,
+    schemaUrl.toString(),
+    "Subscriptions"
+  );
+
+  let queriesRequestGroup = getInsomniaRequestGroupFromOperations(
+    operations.queries,
+    workspace._id,
+    schemaUrl.toString(),
+    "Queries"
+  );
+
+  let mutationsRequestGroup = getInsomniaRequestGroupFromOperations(
+    operations.mutations,
+    workspace._id,
+    schemaUrl.toString(),
+    "Mutations"
+  );
+
+  let resources = [
+    ...subscriptionsRequestGroup,
+    ...queriesRequestGroup,
+    ...mutationsRequestGroup,
+    workspace
+  ];
+
+  let insomniaExportLike = {
+    resources,
+    _type: "export",
+    __export_format: 4
+  };
+
+  await context.data.import.raw(JSON.stringify(insomniaExportLike), {
+    workspaceId: workspace._id
+  });
+}
+
+let importToCurrentWorkspaceFromUrl: WorkspaceAction["action"] =
+  async function importToCurrentWorkspaceFromUrl(context, spec) {
+    try {
       let schemaUrl = await promptUserForSchemaUrl(context);
       if (schemaUrl) {
-        let schema = await fetchGraphQLSchema(context, schemaUrl);
+        let schema = await fetchGraphQLSchema(schemaUrl);
         let operations = await generateOperations(schema);
 
-        let workspace = getCurrentWorkspace(spec);
-
-        let subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(
-          operations.subscriptions,
-          workspace._id,
-          schemaUrl.toString(),
-          "Subscriptions"
-        );
-        let queriesRequestGroup = getInsomniaRequestGroupFromOperations(
-          operations.queries,
-          workspace._id,
-          schemaUrl.toString(),
-          "Queries"
-        );
-        let mutationsRequestGroup = getInsomniaRequestGroupFromOperations(
-          operations.mutations,
-          workspace._id,
-          schemaUrl.toString(),
-          "Mutations"
-        );
-
-        let resources = [
-          ...subscriptionsRequestGroup,
-          ...queriesRequestGroup,
-          ...mutationsRequestGroup,
-          workspace,
-        ];
-
-        let insomniaExportLike = {
-          resources,
-          _type: "export",
-          __export_format: 4,
-        };
-
-        await context.data.import.raw(JSON.stringify(insomniaExportLike), {
-          workspaceId: workspace._id,
-        });
+        await importToCurrentWorkspace(spec, operations, schemaUrl, context);
 
         context.app.alert(
-          "Imported!",
-          "Successfully imported GraphQL operations from url"
+          `${pluginName}: Import from Url`,
+          "Successfully imported GraphQL operations from Url"
         );
       }
-    },
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(`[ERROR] [${pluginName}: From Url] [${error}]`);
+        context.app.alert(
+          "Error while importing GraphQL operations",
+          error.message
+        );
+      }
+    }
+  };
+
+let importToCurrentWorkspaceFromFile: WorkspaceAction["action"] =
+  async function importToCurrentWorkspaceFromFile(context, spec) {
+    try {
+      // @ts-ignore This is available in Chrome as the File System Access API
+      // https://web.dev/file-system-access/
+      let [fileHandle] = await window.showOpenFilePicker();
+
+      let file = await fileHandle.getFile();
+
+      let contents = await file.text();
+
+      let schema = buildSchema(contents);
+
+      let operations = await generateOperations(schema);
+      let schemaUrl = await promptUserForSchemaUrlFromFile(context);
+
+      await importToCurrentWorkspace(
+        spec,
+        operations,
+        schemaUrl || new URL("https://localhost:4000"),
+        context
+      );
+
+      context.app.alert(
+        `${pluginName}: From File`,
+        "Successfully imported GraphQL operations from url!"
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        console.log(`[ERROR] [${pluginName}: From File] [${error}]`);
+        context.app.alert(
+          "Error while importing GraphQL operations",
+          error.message
+        );
+      }
+    }
+  };
+
+/**
+ * Insomnia uses this exported key to add workspace actions from plugins
+ */
+export let workspaceActions: WorkspaceAction[] = [
+  {
+    label: `${pluginName}: From Url`,
+    hideAfterClick: true,
+    action: importToCurrentWorkspaceFromUrl
   },
+  {
+    label: `${pluginName}: From File`,
+    hideAfterClick: true,
+    action: importToCurrentWorkspaceFromFile
+  }
 ];

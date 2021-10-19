@@ -10,25 +10,24 @@
       "cover": "cover.svg"
     }
   },
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "build": "esbuild main.ts --bundle --outfile=main.js",
-    "dev": "esbuild main.ts --bundle --outfile=main.js --watch --platform=node",
-    "download-insomnia": "esbuild download-insomnia-executable.ts --bundle --outfile=scripts/download.js --platform=node --target=node12.18.3 && node ./scripts/download.js",
-    "test": "npx playwright test"
+    "build": "esbuild main.ts --bundle --outfile=./dist/main.js --platform=node",
+    "dev": "esbuild main.ts --bundle --outfile=./dist/main.js --watch --platform=node",
+    "test": "npx playwright test",
+    "graphql:faker": "npx graphql-faker -p 4000 ./tests/fixtures/twitter-schema.graphql"
   },
   "dependencies": {
-    "@graphql-codegen/core": "^2.1.0",
+    "@graphql-codegen/core": "^2.2.0",
     "@graphql-tools/utils": "^8.3.0",
     "@playwright/test": "^1.15.2",
-    "esbuild": "^0.13.5",
+    "esbuild": "^0.13.8",
     "graphql": "^15.6.1",
+    "insomnia-plugin": "file:./insomnia-plugin",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "@types/unzipper": "^0.10.4",
     "@types/uuid": "^8.3.1",
-    "playwright": "^1.15.2",
-    "unzipper": "^0.10.11"
+    "playwright": "^1.15.2"
   }
 }
