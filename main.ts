@@ -13,10 +13,10 @@ import {
 
 import https from "https";
 import {
+  WorkspaceActionModels,
   Context,
   Request,
   RequestGroup,
-  Spec,
   WorkspaceAction
 } from "insomnia-plugin";
 
@@ -36,8 +36,8 @@ function insomniaIdGenerator() {
   };
 }
 
-function getCurrentWorkspace(spec: Spec) {
-  let workspace = spec.workspace;
+function getCurrentWorkspace(models: WorkspaceActionModels) {
+  let workspace = models.workspace;
 
   return workspace;
 }
@@ -136,6 +136,7 @@ async function promptUserForSchemaUrlFromFile(context: Context) {
 
   try {
     url = new URL(schemaUrl);
+    return url;
   } catch (e) {
     if (e instanceof Error) {
       await context.app.alert(
@@ -144,8 +145,6 @@ async function promptUserForSchemaUrlFromFile(context: Context) {
       );
     }
   }
-
-  return url;
 }
 
 async function promptUserForSchemaUrl(context: Context) {
@@ -165,6 +164,7 @@ async function promptUserForSchemaUrl(context: Context) {
 
   try {
     url = new URL(schemaUrl);
+    return url;
   } catch (e) {
     if (e instanceof Error) {
       await context.app.alert(
@@ -173,8 +173,6 @@ async function promptUserForSchemaUrl(context: Context) {
       );
     }
   }
-
-  return url;
 }
 
 let generateInsomniaId = insomniaIdGenerator();
@@ -187,7 +185,7 @@ function getInsomniaRequestGroupFromOperations(
 ) {
   if (operations.length === 0) return [];
 
-  let requestGroup: Partial<RequestGroup> = {
+  let requestGroup: Partial<RequestGroup & { _type: "request_group" }> = {
     parentId: workspaceId,
     name: operationGroupName,
     _type: "request_group",
@@ -196,7 +194,7 @@ function getInsomniaRequestGroupFromOperations(
 
   function mapOperationToRequest(
     operation: OperationDefinitionNode
-  ): Partial<Request> {
+  ): Partial<Request & { _type: "request" }> {
     return {
       _id: generateInsomniaId(),
       _type: "request",
@@ -229,7 +227,7 @@ function getInsomniaRequestGroupFromOperations(
  * Transforms the operations to requests and imports them to the current workspace.
  */
 async function importToCurrentWorkspace(
-  spec: Spec,
+  models: WorkspaceActionModels,
   operations: {
     mutations: OperationDefinitionNode[];
     queries: OperationDefinitionNode[];
@@ -238,7 +236,7 @@ async function importToCurrentWorkspace(
   schemaUrl: URL,
   context: Context
 ) {
-  let workspace = getCurrentWorkspace(spec);
+  let workspace = getCurrentWorkspace(models);
 
   let subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(
     operations.subscriptions,
@@ -280,14 +278,14 @@ async function importToCurrentWorkspace(
 }
 
 let importToCurrentWorkspaceFromUrl: WorkspaceAction["action"] =
-  async function importToCurrentWorkspaceFromUrl(context, spec) {
+  async function importToCurrentWorkspaceFromUrl(context, models) {
     try {
       let schemaUrl = await promptUserForSchemaUrl(context);
       if (schemaUrl) {
         let schema = await fetchGraphQLSchema(schemaUrl);
         let operations = await generateOperations(schema);
 
-        await importToCurrentWorkspace(spec, operations, schemaUrl, context);
+        await importToCurrentWorkspace(models, operations, schemaUrl, context);
 
         context.app.alert(
           `${pluginName}: Import from Url`,
@@ -349,12 +347,10 @@ let importToCurrentWorkspaceFromFile: WorkspaceAction["action"] =
 export let workspaceActions: WorkspaceAction[] = [
   {
     label: `${pluginName}: From Url`,
-    hideAfterClick: true,
     action: importToCurrentWorkspaceFromUrl
   },
   {
     label: `${pluginName}: From File`,
-    hideAfterClick: true,
     action: importToCurrentWorkspaceFromFile
   }
 ];
