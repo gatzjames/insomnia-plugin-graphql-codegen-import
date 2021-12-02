@@ -7,10 +7,9 @@ import {
   print,
   GraphQLSchema,
   OperationDefinitionNode,
-  IntrospectionQuery,
   buildSchema
 } from "graphql";
-import fetch from "node-fetch";
+import got from "got";
 import {
   WorkspaceActionModels,
   Context,
@@ -42,8 +41,7 @@ function getCurrentWorkspace(models: WorkspaceActionModels) {
 }
 
 async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
-
-  const res = await fetch(url.href, {
+  const res = await got(url.href, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -52,9 +50,8 @@ async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
     body: JSON.stringify({
       query: getIntrospectionQuery(),
     }),
-  });
-  const jsonData = await res.json();
-  return buildClientSchema(jsonData.data);
+  }).json<any>();
+  return buildClientSchema(res.data);
 }
 
 function mapFieldsToOperations(
@@ -62,8 +59,11 @@ function mapFieldsToOperations(
   fields: string[],
   kind: "query" | "mutation" | "subscription"
 ) {
-  return fields.map((field) =>
-    buildOperationNodeForField({ schema, kind, field: field })
+  return fields.map((field) => {
+      const operationNode: any = buildOperationNodeForField({ schema, kind, field: field })
+      operationNode.name.value = field;
+      return operationNode;
+    }
   );
 }
 
@@ -123,7 +123,7 @@ async function promptUserForSchemaUrl(context: Context) {
   try {
     schemaUrl = await context.app.prompt(`${pluginName}: Import from Url`, {
       cancelable: true,
-      defaultValue: "https://rickandmortyapi.com/graphql",
+      defaultValue: "",
       label: "Please provide the Url of your GraphQL API"
     });
   } catch (e) {

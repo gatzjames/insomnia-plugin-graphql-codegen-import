@@ -5,6 +5,12 @@
 
 > This is a fork from [gatzjames/insomnia-plugin-graphql-codegen-import](https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import)
 
+## Fixed
+
+- Fix localhost. eg: [http://localhost:3000/graphql](http://localhost:3000/graphql)
+- Remove default url
+- Rename from `operation_{mutation,query}` -> `operation`
+
 Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 ## Installation

@@ -1,6 +1,6 @@
 {
   "name": "insomnia-plugin-graphql-codegen-fixed",
-  "version": "0.3.4",
+  "version": "0.3.8",
   "private": false,
   "license": "MIT",
   "homepage": "https://github.com/boydaihungst/insomnia-plugin-graphql-codegen-import",
@@ -17,22 +17,16 @@
   },
   "main": "dist/main.js",
   "scripts": {
-    "build": "esbuild main.ts --bundle --outfile=./dist/main.js --platform=node",
-    "dev": "esbuild main.ts --bundle --outfile=./dist/main.js --watch --platform=node",
-    "test": "npx playwright test",
-    "graphql:faker": "npx graphql-faker -p 4000 ./tests/fixtures/twitter-schema.graphql"
+    "build": "tsc --project tsconfig.json",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@graphql-codegen/core": "^2.2.0",
     "@graphql-tools/utils": "^8.3.0",
-    "@playwright/test": "^1.15.2",
-    "esbuild": "^0.13.8",
-    "graphql": "^15.6.1",
-    "uuid": "^8.3.2"
+    "got": "^11.8.3",
+    "graphql": "^15.6.1"
   },
   "devDependencies": {
-    "insomnia-plugin": "file:./insomnia-plugin",
-    "@types/uuid": "^8.3.1",
-    "playwright": "^1.15.2"
+    "insomnia-plugin": "file:./insomnia-plugin"
   }
 }
