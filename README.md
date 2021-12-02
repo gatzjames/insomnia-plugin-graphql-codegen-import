@@ -3,6 +3,8 @@
 ![](./cover.svg)
 ![npm (scoped)](https://img.shields.io/npm/v/insomnia-plugin-graphql-codegen?label=NPM) ![NPM](https://img.shields.io/npm/l/insomnia-plugin-graphql-codegen)
 
+> This is a fork from [gatzjames/insomnia-plugin-graphql-codegen-import](https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import)
+
 Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 ## Installation

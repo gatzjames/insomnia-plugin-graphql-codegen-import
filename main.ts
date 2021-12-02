@@ -10,8 +10,7 @@ import {
   IntrospectionQuery,
   buildSchema
 } from "graphql";
-
-import https from "https";
+import fetch from "node-fetch";
 import {
   WorkspaceActionModels,
   Context,
@@ -43,49 +42,19 @@ function getCurrentWorkspace(models: WorkspaceActionModels) {
 }
 
 async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
-  let introspectionQuery = getIntrospectionQuery();
 
-  return new Promise((resolve, reject) => {
-    let request = https.request(
-      {
-        method: "POST",
-        protocol: "https:",
-        host: url.host,
-        path: url.pathname,
-        pathname: url.pathname,
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json"
-        },
-        agent: new https.Agent({
-          rejectUnauthorized: false
-        })
-      },
-      (response) => {
-        if (
-          response.statusMessage === "OK" ||
-          response.statusCode?.toString().startsWith("2")
-        ) {
-          let data = "";
-          response.on("data", (chunk) => {
-            data += chunk;
-          });
-          response.on("end", () => {
-            let introspectionResult: IntrospectionQuery =
-              JSON.parse(data)?.data;
-            let schema = buildClientSchema(introspectionResult);
-            resolve(schema);
-          });
-        }
-
-        response.on("error", reject);
-      }
-    );
-
-    request.on("error", reject);
-    request.write(JSON.stringify({ query: introspectionQuery }));
-    request.end();
+  const res = await fetch(url.href, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: getIntrospectionQuery(),
+    }),
   });
+  const jsonData = await res.json();
+  return buildClientSchema(jsonData.data);
 }
 
 function mapFieldsToOperations(

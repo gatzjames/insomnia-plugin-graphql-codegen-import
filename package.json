@@ -1,14 +1,14 @@
 {
-  "name": "insomnia-plugin-graphql-codegen",
+  "name": "insomnia-plugin-graphql-codegen-fixed",
   "version": "0.3.4",
   "private": false,
   "license": "MIT",
-  "homepage": "https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import",
+  "homepage": "https://github.com/boydaihungst/insomnia-plugin-graphql-codegen-import",
   "repository": {
-    "url": "https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import"
+    "url": "https://github.com/boydaihungst/insomnia-plugin-graphql-codegen-import"
   },
   "insomnia": {
-    "name": "graphql-codegen-import",
+    "name": "graphql-codegen-import-fixed",
     "description": "",
     "images": {
       "icon": "icon.svg",
