@@ -22,6 +22,7 @@ import {
 import _ from 'lodash';
 
 let pluginName = `GraphQL Codegen`;
+const DEFAULT_URL = 'http://localhost:4000/graphql';  
 
 /**
  * NOTE:
@@ -98,7 +99,7 @@ async function promptUserForSchemaUrlFromFile(context: Context) {
   try {
     schemaUrl = await context.app.prompt(`${pluginName}: Import from File`, {
       cancelable: true,
-      defaultValue: "http://localhost:4000/graphql",
+      defaultValue: DEFAULT_URL,
       label: "Provide the Url for the generated GraphQL requests"
     });
   } catch (e) {
@@ -129,9 +130,10 @@ async function promptUserForSchemaUrl(context: Context) {
       cancelable: true,
       defaultValue: await context.store.hasItem(CACHED_URL_KEY) 
         ? (await context.store.getItem(CACHED_URL_KEY) as string)
-        : "",
+        : DEFAULT_URL,
       label: "Please provide the Url of your GraphQL API"
     });
+    // Cache user input url
     await context.store.setItem(CACHED_URL_KEY, schemaUrl);
   } catch (e) {
     console.log(e);
@@ -154,16 +156,24 @@ async function promptUserForSchemaUrl(context: Context) {
 let generateInsomniaId = insomniaIdGenerator();
 
 
+/**
+ * Merge workspace resources base on `name`  `_type` `parentId` props
+ * @param oldWorkspace 
+ * @param newWorkspace 
+ * @returns 
+ */
 function mergeWorkspace(oldWorkspace: any[], newWorkspace: any[]) {
-  const merged = _.unionWith(oldWorkspace, newWorkspace, function(old,newVal){ 
+  const mergedWorkspaceResources = _.unionWith(oldWorkspace, newWorkspace, function(old,newVal){ 
     const listCompareProp = ['name', '_type', 'parentId']
     return listCompareProp.every(prop => old[prop] === newVal[prop] )
   }).map(x => {
+    // For new request_group 
     if(!x._id) x._id = generateInsomniaId();
     return x;
   });
-  return merged;
+  return mergedWorkspaceResources;
 }
+
 async function getInsomniaRequestGroupFromOperations(
   context: Context,
   operations: OperationDefinitionNode[],
@@ -176,6 +186,7 @@ async function getInsomniaRequestGroupFromOperations(
   const oldWorkspace = await exportFromInsomnia(context);
   const oldResources: Partial<Resource>[] = oldWorkspace.resources;
   const oldRequestGroup = oldResources.find(x => x._type === 'request_group' && x.name === operationGroupName && x.parentId === workspaceId)
+  // Select old request_group (Queries | Mutations ) or create new one if not exist
   let requestGroup: Partial<Resource> = oldRequestGroup || {
       _id: generateInsomniaId(),
       parentId: workspaceId,
@@ -209,6 +220,7 @@ async function getInsomniaRequestGroupFromOperations(
   }
 
   let requests: Partial<Request>[] = operations.map(mapOperationToRequest);
+  // merge workspace resouces instead of re-create (Queries | Mutations)
   return mergeWorkspace(oldResources, [requestGroup, ...requests])
 }
 
