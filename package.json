@@ -1,6 +1,6 @@
 {
   "name": "insomnia-plugin-graphql-codegen-fixed",
-  "version": "0.3.8",
+  "version": "0.4.1",
   "private": false,
   "license": "MIT",
   "homepage": "https://github.com/boydaihungst/insomnia-plugin-graphql-codegen-import",
@@ -24,9 +24,11 @@
     "@graphql-codegen/core": "^2.2.0",
     "@graphql-tools/utils": "^8.3.0",
     "got": "^11.8.3",
-    "graphql": "^15.6.1"
+    "graphql": "^15.6.1",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.177",
     "insomnia-plugin": "file:./insomnia-plugin"
   }
 }

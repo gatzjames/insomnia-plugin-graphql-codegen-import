@@ -10,6 +10,7 @@
 - Fix localhost. eg: [http://localhost:3000/graphql](http://localhost:3000/graphql)
 - Remove default url
 - Rename from `operation_{mutation,query}` -> `operation`
+- Fix duplicated after re-import
 
 Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
@@ -17,7 +18,7 @@ Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 ![](./docs/installation.gif)
 - Open [Insomnia](https://insomnia.rest/) > Preferences > Plugins
-- Type `insomnia-plugin-graphql-codegen` and install the plugin.
+- Type `insomnia-plugin-graphql-codegen-fixed` and install the plugin.
 
 ## How it works
 
@@ -34,7 +35,7 @@ Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 TODO:
 - [ ] Tests
-- [ ] Re-importing operations will produce duplicates. 
+- [x] Re-importing operations will produce duplicates. 
 
 ## Contributing
 Found any bugs? Have any more ideas or want to contribute to the existing development?

@@ -50,6 +50,7 @@ exports.workspaceActions = void 0;
 var utils_1 = require("@graphql-tools/utils");
 var graphql_1 = require("graphql");
 var got_1 = __importDefault(require("got"));
+var lodash_1 = __importDefault(require("lodash"));
 var pluginName = "GraphQL Codegen";
 /**
  * NOTE:
@@ -150,76 +151,135 @@ function promptUserForSchemaUrlFromFile(context) {
 }
 function promptUserForSchemaUrl(context) {
     return __awaiter(this, void 0, void 0, function () {
-        var schemaUrl, url, e_3, e_4;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var CACHED_URL_KEY, schemaUrl, url, _a, _b, _c, _d, e_3, e_4;
+        var _e;
+        return __generator(this, function (_f) {
+            switch (_f.label) {
                 case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, context.app.prompt(pluginName + ": Import from Url", {
-                            cancelable: true,
-                            defaultValue: "",
-                            label: "Please provide the Url of your GraphQL API"
-                        })];
+                    CACHED_URL_KEY = 'CACHED_URL';
+                    _f.label = 1;
                 case 1:
-                    schemaUrl = _a.sent();
-                    return [3 /*break*/, 3];
+                    _f.trys.push([1, 8, , 9]);
+                    _b = (_a = context.app).prompt;
+                    _c = [pluginName + ": Import from Url"];
+                    _e = {
+                        cancelable: true
+                    };
+                    return [4 /*yield*/, context.store.hasItem(CACHED_URL_KEY)];
                 case 2:
-                    e_3 = _a.sent();
+                    if (!(_f.sent())) return [3 /*break*/, 4];
+                    return [4 /*yield*/, context.store.getItem(CACHED_URL_KEY)];
+                case 3:
+                    _d = _f.sent();
+                    return [3 /*break*/, 5];
+                case 4:
+                    _d = "";
+                    _f.label = 5;
+                case 5: return [4 /*yield*/, _b.apply(_a, _c.concat([(_e.defaultValue = _d,
+                            _e.label = "Please provide the Url of your GraphQL API",
+                            _e)]))];
+                case 6:
+                    schemaUrl = _f.sent();
+                    return [4 /*yield*/, context.store.setItem(CACHED_URL_KEY, schemaUrl)];
+                case 7:
+                    _f.sent();
+                    return [3 /*break*/, 9];
+                case 8:
+                    e_3 = _f.sent();
                     console.log(e_3);
                     return [2 /*return*/];
-                case 3:
-                    _a.trys.push([3, 4, , 7]);
+                case 9:
+                    _f.trys.push([9, 10, , 13]);
                     url = new URL(schemaUrl);
                     return [2 /*return*/, url];
-                case 4:
-                    e_4 = _a.sent();
-                    if (!(e_4 instanceof Error)) return [3 /*break*/, 6];
+                case 10:
+                    e_4 = _f.sent();
+                    if (!(e_4 instanceof Error)) return [3 /*break*/, 12];
                     return [4 /*yield*/, context.app.alert(pluginName + ": Import from Url", "The Url is not valid")];
-                case 5:
-                    _a.sent();
-                    _a.label = 6;
-                case 6: return [3 /*break*/, 7];
-                case 7: return [2 /*return*/];
+                case 11:
+                    _f.sent();
+                    _f.label = 12;
+                case 12: return [3 /*break*/, 13];
+                case 13: return [2 /*return*/];
             }
         });
     });
 }
 var generateInsomniaId = insomniaIdGenerator();
-function getInsomniaRequestGroupFromOperations(operations, workspaceId, url, operationGroupName) {
-    if (operations.length === 0)
-        return [];
-    var requestGroup = {
-        parentId: workspaceId,
-        name: operationGroupName,
-        _type: "request_group",
-        _id: generateInsomniaId()
-    };
-    function mapOperationToRequest(operation) {
-        var _a;
-        return {
-            _id: generateInsomniaId(),
-            _type: "request",
-            body: {
-                mimeType: "application/graphql",
-                text: JSON.stringify({
-                    query: graphql_1.print(operation),
-                    variables: JSON.stringify({})
-                }),
-                headers: [
-                    {
-                        name: "Content-Type",
-                        value: "application/json"
-                    }
-                ]
-            },
-            name: (_a = operation.name) === null || _a === void 0 ? void 0 : _a.value,
-            method: "POST",
-            url: url,
-            parentId: requestGroup._id
-        };
-    }
-    var requests = operations.map(mapOperationToRequest);
-    return __spreadArray([requestGroup], requests);
+function mergeWorkspace(oldWorkspace, newWorkspace) {
+    var merged = lodash_1.default.unionWith(oldWorkspace, newWorkspace, function (old, newVal) {
+        var listCompareProp = ['name', '_type', 'parentId'];
+        return listCompareProp.every(function (prop) { return old[prop] === newVal[prop]; });
+    }).map(function (x) {
+        if (!x._id)
+            x._id = generateInsomniaId();
+        return x;
+    });
+    return merged;
+}
+function getInsomniaRequestGroupFromOperations(context, operations, workspaceId, url, operationGroupName) {
+    return __awaiter(this, void 0, void 0, function () {
+        function mapOperationToRequest(operation) {
+            var _a;
+            return {
+                _type: "request",
+                body: {
+                    mimeType: "application/graphql",
+                    text: JSON.stringify({
+                        query: graphql_1.print(operation),
+                        variables: JSON.stringify({})
+                    }),
+                    headers: [
+                        {
+                            name: "Content-Type",
+                            value: "application/json"
+                        }
+                    ]
+                },
+                name: (_a = operation.name) === null || _a === void 0 ? void 0 : _a.value,
+                method: "POST",
+                url: url,
+                parentId: requestGroup._id
+            };
+        }
+        var oldWorkspace, oldResources, oldRequestGroup, requestGroup, requests;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    if (operations.length === 0)
+                        return [2 /*return*/, []];
+                    return [4 /*yield*/, exportFromInsomnia(context)];
+                case 1:
+                    oldWorkspace = _a.sent();
+                    oldResources = oldWorkspace.resources;
+                    oldRequestGroup = oldResources.find(function (x) { return x._type === 'request_group' && x.name === operationGroupName && x.parentId === workspaceId; });
+                    requestGroup = oldRequestGroup || {
+                        _id: generateInsomniaId(),
+                        parentId: workspaceId,
+                        name: operationGroupName,
+                        _type: "request_group",
+                    };
+                    requests = operations.map(mapOperationToRequest);
+                    return [2 /*return*/, mergeWorkspace(oldResources, __spreadArray([requestGroup], requests))];
+            }
+        });
+    });
+}
+function exportFromInsomnia(context) {
+    return __awaiter(this, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, context.data.export.insomnia({
+                        includePrivate: false,
+                        format: 'json'
+                    })];
+                case 1:
+                    data = _a.sent();
+                    return [2 /*return*/, JSON.parse(data)];
+            }
+        });
+    });
 }
 /**
  * Transforms the operations to requests and imports them to the current workspace.
@@ -231,9 +291,15 @@ function importToCurrentWorkspace(models, operations, schemaUrl, context) {
             switch (_a.label) {
                 case 0:
                     workspace = getCurrentWorkspace(models);
-                    subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(operations.subscriptions, workspace._id, schemaUrl.toString(), "Subscriptions");
-                    queriesRequestGroup = getInsomniaRequestGroupFromOperations(operations.queries, workspace._id, schemaUrl.toString(), "Queries");
-                    mutationsRequestGroup = getInsomniaRequestGroupFromOperations(operations.mutations, workspace._id, schemaUrl.toString(), "Mutations");
+                    return [4 /*yield*/, getInsomniaRequestGroupFromOperations(context, operations.subscriptions, workspace._id, schemaUrl.toString(), "Subscriptions")];
+                case 1:
+                    subscriptionsRequestGroup = _a.sent();
+                    return [4 /*yield*/, getInsomniaRequestGroupFromOperations(context, operations.queries, workspace._id, schemaUrl.toString(), "Queries")];
+                case 2:
+                    queriesRequestGroup = _a.sent();
+                    return [4 /*yield*/, getInsomniaRequestGroupFromOperations(context, operations.mutations, workspace._id, schemaUrl.toString(), "Mutations")];
+                case 3:
+                    mutationsRequestGroup = _a.sent();
                     resources = __spreadArray(__spreadArray(__spreadArray(__spreadArray([], subscriptionsRequestGroup), queriesRequestGroup), mutationsRequestGroup), [
                         workspace
                     ]);
@@ -245,7 +311,7 @@ function importToCurrentWorkspace(models, operations, schemaUrl, context) {
                     return [4 /*yield*/, context.data.import.raw(JSON.stringify(insomniaExportLike), {
                             workspaceId: workspace._id
                         })];
-                case 1:
+                case 4:
                     _a.sent();
                     return [2 /*return*/];
             }

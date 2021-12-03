@@ -15,8 +15,11 @@ import {
   Context,
   Request,
   RequestGroup,
-  WorkspaceAction
+  WorkspaceAction,
+  Workspace,
+  Resource
 } from "insomnia-plugin";
+import _ from 'lodash';
 
 let pluginName = `GraphQL Codegen`;
 
@@ -36,7 +39,7 @@ function insomniaIdGenerator() {
 
 function getCurrentWorkspace(models: WorkspaceActionModels) {
   let workspace = models.workspace;
-
+  
   return workspace;
 }
 
@@ -117,15 +120,19 @@ async function promptUserForSchemaUrlFromFile(context: Context) {
 }
 
 async function promptUserForSchemaUrl(context: Context) {
+  const CACHED_URL_KEY = 'CACHED_URL'
   let schemaUrl: string;
   let url: URL;
 
   try {
     schemaUrl = await context.app.prompt(`${pluginName}: Import from Url`, {
       cancelable: true,
-      defaultValue: "",
+      defaultValue: await context.store.hasItem(CACHED_URL_KEY) 
+        ? (await context.store.getItem(CACHED_URL_KEY) as string)
+        : "",
       label: "Please provide the Url of your GraphQL API"
     });
+    await context.store.setItem(CACHED_URL_KEY, schemaUrl);
   } catch (e) {
     console.log(e);
     return;
@@ -146,7 +153,19 @@ async function promptUserForSchemaUrl(context: Context) {
 
 let generateInsomniaId = insomniaIdGenerator();
 
-function getInsomniaRequestGroupFromOperations(
+
+function mergeWorkspace(oldWorkspace: any[], newWorkspace: any[]) {
+  const merged = _.unionWith(oldWorkspace, newWorkspace, function(old,newVal){ 
+    const listCompareProp = ['name', '_type', 'parentId']
+    return listCompareProp.every(prop => old[prop] === newVal[prop] )
+  }).map(x => {
+    if(!x._id) x._id = generateInsomniaId();
+    return x;
+  });
+  return merged;
+}
+async function getInsomniaRequestGroupFromOperations(
+  context: Context,
   operations: OperationDefinitionNode[],
   workspaceId: string,
   url: string,
@@ -154,18 +173,20 @@ function getInsomniaRequestGroupFromOperations(
 ) {
   if (operations.length === 0) return [];
 
-  let requestGroup: Partial<RequestGroup & { _type: "request_group" }> = {
-    parentId: workspaceId,
-    name: operationGroupName,
-    _type: "request_group",
-    _id: generateInsomniaId()
-  };
+  const oldWorkspace = await exportFromInsomnia(context);
+  const oldResources: Partial<Resource>[] = oldWorkspace.resources;
+  const oldRequestGroup = oldResources.find(x => x._type === 'request_group' && x.name === operationGroupName && x.parentId === workspaceId)
+  let requestGroup: Partial<Resource> = oldRequestGroup || {
+      _id: generateInsomniaId(),
+      parentId: workspaceId,
+      name: operationGroupName,
+      _type: "request_group",
+    };
 
   function mapOperationToRequest(
     operation: OperationDefinitionNode
   ): Partial<Request & { _type: "request" }> {
     return {
-      _id: generateInsomniaId(),
       _type: "request",
       body: {
         mimeType: "application/graphql",
@@ -188,8 +209,15 @@ function getInsomniaRequestGroupFromOperations(
   }
 
   let requests: Partial<Request>[] = operations.map(mapOperationToRequest);
+  return mergeWorkspace(oldResources, [requestGroup, ...requests])
+}
 
-  return [requestGroup, ...requests];
+async function exportFromInsomnia(context: Context) {
+  const data = await context.data.export.insomnia({
+    includePrivate: false,
+    format: 'json'
+  });
+  return JSON.parse(data);
 }
 
 /**
@@ -206,22 +234,24 @@ async function importToCurrentWorkspace(
   context: Context
 ) {
   let workspace = getCurrentWorkspace(models);
-
-  let subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(
+  let subscriptionsRequestGroup = await getInsomniaRequestGroupFromOperations(
+    context,
     operations.subscriptions,
     workspace._id,
     schemaUrl.toString(),
     "Subscriptions"
   );
 
-  let queriesRequestGroup = getInsomniaRequestGroupFromOperations(
+  let queriesRequestGroup = await getInsomniaRequestGroupFromOperations(
+    context,
     operations.queries,
     workspace._id,
     schemaUrl.toString(),
     "Queries"
   );
 
-  let mutationsRequestGroup = getInsomniaRequestGroupFromOperations(
+  let mutationsRequestGroup = await getInsomniaRequestGroupFromOperations(
+    context,
     operations.mutations,
     workspace._id,
     schemaUrl.toString(),

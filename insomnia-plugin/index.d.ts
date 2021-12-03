@@ -7,6 +7,8 @@ declare module "insomnia-plugin" {
     clear(): void;
   }
 
+  type Resource = (Request & {"_type": "request"} | Workspace & {"_type": "workspace"} | RequestGroup & {"_type":"request_group"});
+  
   export interface Analytics {
     SegmentEvent: SegmentEvent;
   }
