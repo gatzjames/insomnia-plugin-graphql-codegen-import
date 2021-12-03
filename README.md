@@ -3,22 +3,13 @@
 ![](./cover.svg)
 ![npm (scoped)](https://img.shields.io/npm/v/insomnia-plugin-graphql-codegen?label=NPM) ![NPM](https://img.shields.io/npm/l/insomnia-plugin-graphql-codegen)
 
-> This is a fork from [gatzjames/insomnia-plugin-graphql-codegen-import](https://github.com/gatzjames/insomnia-plugin-graphql-codegen-import)
-
-## Fixed
-
-- Fix localhost. eg: [http://localhost:3000/graphql](http://localhost:3000/graphql)
-- Remove default url
-- Rename from `operation_{mutation,query}` -> `operation`
-- Fix duplicated after re-import
-
 Automatically generate and import GraphQL operations to your Insomnia Workspace!
 
 ## Installation
 
 ![](./docs/installation.gif)
 - Open [Insomnia](https://insomnia.rest/) > Preferences > Plugins
-- Type `insomnia-plugin-graphql-codegen-fixed` and install the plugin.
+- Type `insomnia-plugin-graphql-codegen` and install the plugin.
 
 ## How it works
 

@@ -65,6 +65,7 @@ function mapFieldsToOperations(
 ) {
   return fields.map((field) => {
       const operationNode: any = buildOperationNodeForField({ schema, kind, field: field })
+      // Use name: Operation instead of Operation_{mutation,query}
       operationNode.name.value = field;
       return operationNode;
     }
