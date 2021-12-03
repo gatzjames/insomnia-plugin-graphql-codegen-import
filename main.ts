@@ -158,16 +158,16 @@ let generateInsomniaId = insomniaIdGenerator();
 
 
 /**
- * Merge workspace resources base on `name`  `_type` `parentId` props
+ * Deep merge workspace resources base on `name`  `_type` `parentId` props
  * @param oldWorkspace 
  * @param newWorkspace 
  * @returns 
  */
 function mergeWorkspace(oldWorkspace: any[], newWorkspace: any[]) {
-  const mergedWorkspaceResources = _.unionWith(oldWorkspace, newWorkspace, function(old,newVal){ 
-    const listCompareProp = ['name', '_type', 'parentId']
-    return listCompareProp.every(prop => old[prop] === newVal[prop] )
-  }).map(x => {
+  const mergedWorkspaceResources = _.values(_.merge(
+    _.keyBy(oldWorkspace, (o) => (o._id + o.parentId + o.name)),
+    _.keyBy(newWorkspace, (o) => (o._id + o.parentId + o.name))
+  )).map(x => {
     // For new request_group 
     if(!x._id) x._id = generateInsomniaId();
     return x;
