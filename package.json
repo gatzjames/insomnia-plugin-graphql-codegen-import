@@ -23,14 +23,14 @@
     "graphql:faker": "npx graphql-faker -p 4000 ./tests/fixtures/twitter-schema.graphql"
   },
   "dependencies": {
-    "@graphql-codegen/core": "^2.2.0",
-    "@graphql-tools/utils": "^8.3.0",
-    "@playwright/test": "^1.15.2",
-    "esbuild": "^0.13.8",
-    "graphql": "^15.6.1",
+    "@graphql-codegen/core": "^2.5.1",
+    "@graphql-tools/utils": "^8.6.5",
+    "graphql": "^16.3.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.20.0",
+    "esbuild": "^0.13.8",
     "insomnia-plugin": "file:./insomnia-plugin",
     "@types/uuid": "^8.3.1",
     "playwright": "^1.15.2"
