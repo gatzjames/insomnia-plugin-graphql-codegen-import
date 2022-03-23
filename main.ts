@@ -8,10 +8,12 @@ import {
   GraphQLSchema,
   OperationDefinitionNode,
   IntrospectionQuery,
-  buildSchema
+  buildSchema,
+  OperationTypeNode
 } from "graphql";
 
 import https from "https";
+import http from "http";
 import {
   WorkspaceActionModels,
   Context,
@@ -46,10 +48,13 @@ async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
   let introspectionQuery = getIntrospectionQuery();
 
   return new Promise((resolve, reject) => {
-    let request = https.request(
+    let { request: httpRequest, Agent } =
+      url.protocol === "https:" ? https : http;
+
+    let request = httpRequest(
       {
         method: "POST",
-        protocol: "https:",
+        protocol: url.protocol,
         host: url.host,
         path: url.pathname,
         pathname: url.pathname,
@@ -57,7 +62,7 @@ async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
           Accept: "application/json",
           "Content-Type": "application/json"
         },
-        agent: new https.Agent({
+        agent: new Agent({
           rejectUnauthorized: false
         })
       },
@@ -91,7 +96,7 @@ async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
 function mapFieldsToOperations(
   schema: GraphQLSchema,
   fields: string[],
-  kind: "query" | "mutation" | "subscription"
+  kind: OperationTypeNode
 ) {
   return fields.map((field) =>
     buildOperationNodeForField({ schema, kind, field: field })
@@ -108,13 +113,17 @@ async function generateOperations(schema: GraphQLSchema) {
     mutations: mapFieldsToOperations(
       schema,
       Object.keys(mutations),
-      "mutation"
+      OperationTypeNode.MUTATION
     ),
-    queries: mapFieldsToOperations(schema, Object.keys(queries), "query"),
+    queries: mapFieldsToOperations(
+      schema,
+      Object.keys(queries),
+      OperationTypeNode.QUERY
+    ),
     subscriptions: mapFieldsToOperations(
       schema,
       Object.keys(subscriptions),
-      "subscription"
+      OperationTypeNode.SUBSCRIPTION
     )
   };
 }
