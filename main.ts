@@ -99,7 +99,7 @@ function mapFieldsToOperations(
   kind: OperationTypeNode
 ) {
   return fields.map((field) =>
-    buildOperationNodeForField({ schema, kind, field: field })
+    buildOperationNodeForField({ schema, kind, field: field, depthLimit: 3, circularReferenceDepth: 2 })
   );
 }
 
@@ -172,6 +172,10 @@ async function promptUserForSchemaUrl(context: Context) {
   }
 
   try {
+    if (!schemaUrl.startsWith("http") || !schemaUrl.startsWith("https")) {
+      schemaUrl = `http://${schemaUrl}`;
+    }
+
     url = new URL(schemaUrl);
     return url;
   } catch (e) {
