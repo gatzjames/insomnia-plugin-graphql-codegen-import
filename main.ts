@@ -24,6 +24,15 @@ import {
 
 let pluginName = `GraphQL Codegen`;
 
+function chunk<T>(arr: T[], size: number) {
+  let chunks: T[][] = [];
+  let i = 0;
+  while (i < arr.length) {
+    chunks.push(arr.slice(i, (i += size)));
+  }
+  return chunks;
+}
+
 /**
  * NOTE:
  * Insomnia will generate new ids for any resource with an id that matches this regex: /__\w+_\d+__/g;
@@ -99,7 +108,13 @@ function mapFieldsToOperations(
   kind: OperationTypeNode
 ) {
   return fields.map((field) =>
-    buildOperationNodeForField({ schema, kind, field: field, depthLimit: 3, circularReferenceDepth: 2 })
+    buildOperationNodeForField({
+      schema,
+      kind,
+      field: field,
+      depthLimit: 3,
+      circularReferenceDepth: 2
+    })
   );
 }
 
@@ -190,7 +205,7 @@ async function promptUserForSchemaUrl(context: Context) {
 
 let generateInsomniaId = insomniaIdGenerator();
 
-function getInsomniaRequestGroupFromOperations(
+function getInsomniaResourcesFromOperations(
   operations: OperationDefinitionNode[],
   workspaceId: string,
   url: string,
@@ -251,26 +266,38 @@ async function importToCurrentWorkspace(
 ) {
   let workspace = getCurrentWorkspace(models);
 
-  let subscriptionsRequestGroup = getInsomniaRequestGroupFromOperations(
+  let subscriptionsRequestGroup = getInsomniaResourcesFromOperations(
     operations.subscriptions,
     workspace._id,
     schemaUrl.toString(),
     "Subscriptions"
   );
 
-  let queriesRequestGroup = getInsomniaRequestGroupFromOperations(
+  let queriesRequestGroup = getInsomniaResourcesFromOperations(
     operations.queries,
     workspace._id,
     schemaUrl.toString(),
     "Queries"
   );
 
-  let mutationsRequestGroup = getInsomniaRequestGroupFromOperations(
+  let mutationsRequestGroup = getInsomniaResourcesFromOperations(
     operations.mutations,
     workspace._id,
     schemaUrl.toString(),
     "Mutations"
   );
+
+  async function importResources(resources: any[]) {
+    let insomniaExportLike = {
+      resources,
+      _type: "export",
+      __export_format: 4
+    };
+
+    await context.data.import.raw(JSON.stringify(insomniaExportLike), {
+      workspaceId: workspace._id
+    });
+  }
 
   let resources = [
     ...subscriptionsRequestGroup,
@@ -279,15 +306,11 @@ async function importToCurrentWorkspace(
     workspace
   ];
 
-  let insomniaExportLike = {
-    resources,
-    _type: "export",
-    __export_format: 4
-  };
+  let resourcesChunks = chunk(resources, 30);
 
-  await context.data.import.raw(JSON.stringify(insomniaExportLike), {
-    workspaceId: workspace._id
-  });
+  for (let resourcesChunk of resourcesChunks) {
+    await importResources(resourcesChunk);
+  }
 }
 
 let importToCurrentWorkspaceFromUrl: WorkspaceAction["action"] =
