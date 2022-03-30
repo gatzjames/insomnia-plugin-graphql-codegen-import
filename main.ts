@@ -112,8 +112,8 @@ function mapFieldsToOperations(
       schema,
       kind,
       field: field,
-      depthLimit: 3,
-      circularReferenceDepth: 2
+      depthLimit: 1,
+      circularReferenceDepth: 0
     })
   );
 }
@@ -309,6 +309,7 @@ async function importToCurrentWorkspace(
   let resourcesChunks = chunk(resources, 30);
 
   for (let resourcesChunk of resourcesChunks) {
+    debugger;
     await importResources(resourcesChunk);
   }
 }
