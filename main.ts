@@ -24,15 +24,6 @@ import {
 
 let pluginName = `GraphQL Codegen`;
 
-function chunk<T>(arr: T[], size: number) {
-  let chunks: T[][] = [];
-  let i = 0;
-  while (i < arr.length) {
-    chunks.push(arr.slice(i, (i += size)));
-  }
-  return chunks;
-}
-
 /**
  * NOTE:
  * Insomnia will generate new ids for any resource with an id that matches this regex: /__\w+_\d+__/g;
@@ -299,18 +290,14 @@ async function importToCurrentWorkspace(
     });
   }
 
-  let resources = [
-    ...subscriptionsRequestGroup,
-    ...queriesRequestGroup,
-    ...mutationsRequestGroup,
-    workspace
+  let requestGroups = [
+    subscriptionsRequestGroup,
+    queriesRequestGroup,
+    mutationsRequestGroup,
   ];
 
-  let resourcesChunks = chunk(resources, 30);
-
-  for (let resourcesChunk of resourcesChunks) {
-    debugger;
-    await importResources(resourcesChunk);
+  for (let requestGroup of requestGroups) {
+    await importResources(requestGroup);
   }
 }
 
