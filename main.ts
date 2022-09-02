@@ -63,10 +63,9 @@ async function fetchGraphQLSchema(url: URL): Promise<GraphQLSchema> {
     let request = httpRequest(
       {
         method: "POST",
-        protocol: url.protocol,
-        host: url.host,
+        hostname: url.hostname,
         path: url.pathname,
-        pathname: url.pathname,
+        port: url.port,
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json"
@@ -187,7 +186,7 @@ async function promptUserForSchemaUrl(context: Context) {
   }
 
   try {
-    if (!schemaUrl.startsWith("http") || !schemaUrl.startsWith("https")) {
+    if (!schemaUrl.startsWith("http:") && !schemaUrl.startsWith("https:")) {
       schemaUrl = `http://${schemaUrl}`;
     }
 
